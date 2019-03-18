@@ -1,0 +1,110 @@
+%YAML 1.2
+---
+# See http://www.sublimetext.com/docs/3/syntax.html
+file_extensions:
+  - pigeon
+scope: source.pigeon
+
+contexts:
+  main:
+    - match: '{'
+      scope: source.pigeon
+      push: go-code
+
+    - match: "(//)(?!{)"
+      captures:
+        1: punctuation.definition.comment.begin.pigeon
+      push: pop-line-comment
+
+    - match: /\*
+      captures:
+        0: punctuation.definition.comment.begin.pigeon
+      push:
+        - meta_scope: comment.block.pigeon
+        - match: \*/
+          scope: punctuation.definition.comment.end.pigeon
+          pop: true
+
+    - match: '"'
+      captures:
+        0: punctuation.definition.string.begin.pigeon
+      push:
+        - meta_scope: string.quoted.double.pigeon
+        - match: '"'
+          captures:
+            0: punctuation.definition.string.end.pigeon
+          pop: true
+        - include: string_placeholder
+        - include: string_escaped_char
+
+    - match: "'"
+      captures:
+        0: punctuation.definition.string.begin.pigeon
+      push:
+        - meta_scope: string.quoted.single.pigeon
+        - match: "'"
+          captures:
+            0: punctuation.definition.string.end.pigeon
+          pop: true
+        - include: string_placeholder
+        - include: string_escaped_char
+
+    - match: '`'
+      captures:
+        0: punctuation.definition.string.begin.pigeon
+      push:
+        - meta_scope: string.quoted.raw.pigeon
+        - match: '`'
+          captures:
+            0: punctuation.definition.string.end.pigeon
+          pop: true
+        - include: string_placeholder
+
+    - match: ^\s*(\w+)
+      captures:
+        1: entity.name.rule-id
+
+    - match: <-|=|←|⟵|/|\?|\*|\.
+      captures:
+        0: keyword.operator.pigeon
+
+    - match: '\w+:'
+      captures:
+        0: entity.name.label
+
+  pop-line-comment:
+    - meta_scope: comment.line.pigeon
+    # Including the newline allows the scope to visually stretch to the right,
+    # and ensures that functionality that relies on comment scoping, such as
+    # contextual hotkeys, works properly at EOL while typing a comment. This
+    # should also match \r\n due to Sublime's internal normalization.
+    - match: $\n?
+      pop: true
+
+  string_escaped_char:
+    - match: '\\(\\|[abfnrtv''"]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[0-7]{3})'
+      scope: constant.character.escape.pigeon
+    - match: \\.
+      scope: invalid.illegal.unknown-escape.pigeon
+
+  string_placeholder:
+    - match: |-
+        (?x)%
+            (\d+\$)?                                    # field (argument #)
+            [#0\- +']*                                  # flags
+            [,;:_]?                                     # separator character (AltiVec)
+            ((-?\d+)|\*(-?\d+\$)?)?                     # minimum field width
+            (\.((-?\d+)|\*(-?\d+\$)?)?)?                # precision
+            [diouxXDOUeEfFgGaAcCsSqpnvtTbyYhHmMzZ%]     # conversion type
+      scope: constant.other.placeholder.pigeon
+
+
+
+  go-code:
+    - clear_scopes: true
+    - match: '{'
+      scope: source.go
+      push: go-code
+    - match: '}'
+      pop: true
+    - include: scope:source.go
